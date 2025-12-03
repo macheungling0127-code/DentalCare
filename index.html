@@ -686,8 +686,8 @@
                 userData.activeItems.splice(idx, 1);
             } else {
                 // Equip (Check Limit)
-                if (userData.activeItems.length >= 3) {
-                    alert("⚠️ Bag Full! You can only equip 3 items.\nUnequip something first.");
+                if (userData.activeItems.length >= 5) {
+                    alert("⚠️ Bag Full! You can only equip 5 items.\nUnequip something first.");
                     return;
                 }
                 userData.activeItems.push(id);
@@ -747,8 +747,8 @@
                 saveData();
             }
 
-            if (userData.quizHistory.answered.length >= 3) {
-                alert("🧠 You've completed your 3 daily quizzes!\nCome back tomorrow for more.");
+            if (userData.quizHistory.answered.length >= 10) {
+                alert("🧠 You've completed your 10 daily quizzes!\nCome back tomorrow for more.");
                 return;
             }
 
@@ -756,7 +756,7 @@
         };
 
         function loadNextQuestion() {
-            if (userData.quizHistory.answered.length >= 3) {
+            if (userData.quizHistory.answered.length >= 10) {
                 closeModal('quiz-modal');
                 alert("🎉 Daily Quizzes Completed!");
                 return;
@@ -792,8 +792,8 @@
                     userData.quizHistory.answered.push(questionIndex);
                     
                     if (idx === q.correct) {
-                        alert("✅ Correct! +20 Coins");
-                        userData.coins += 20;
+                        alert("✅ Correct! +100 Coins");
+                        userData.coins += 100;
                     } else {
                         alert("❌ Oops! That wasn't right.");
                     }
@@ -839,8 +839,8 @@
 
                 if (timeLeft <= 0) {
                     clearInterval(brushInterval);
-                    instruct.innerText = "All done! Shiny Smile! +1000 Coins";
-                    userData.coins += 1000;
+                    instruct.innerText = "All done! Shiny Smile! +10000 Coins";
+                    userData.coins += 10000;
                     saveData();
                     updateUI();
                     setTimeout(() => closeModal('timer-modal'), 3000);
