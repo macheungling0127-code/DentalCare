@@ -839,8 +839,8 @@
 
                 if (timeLeft <= 0) {
                     clearInterval(brushInterval);
-                    instruct.innerText = "All done! Shiny Smile! +100 Coins";
-                    userData.coins += 100;
+                    instruct.innerText = "All done! Shiny Smile! +1000 Coins";
+                    userData.coins += 1000;
                     saveData();
                     updateUI();
                     setTimeout(() => closeModal('timer-modal'), 3000);
