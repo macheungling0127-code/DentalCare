@@ -829,9 +829,17 @@
                 let s = timeLeft % 60;
                 display.innerText = `0${m}:${s < 10 ? '0'+s : s}`;
 
-                if (timeLeft > 90) instruct.innerText = "Brush Top Teeth穿室彤阡天荏迓 (Outer Surface)";
-                else if (timeLeft > 60) instruct.innerText = "Brush Top Teeth (Inner Surface)";
-                else if (timeLeft > 30) instruct.innerText = "Brush Bottom Teeth";
+                if (timeLeft > 120) instruct.innerText = "耶耶";
+                else if (timeLeft > 110) instruct.innerText = "Brush Chewing Surfaces";
+                else if (timeLeft > 100) instruct.innerText = "Brush Top Teeth (Inner Surface)";
+                else if (timeLeft > 90) instruct.innerText = "Brush Bottom Teeth";
+                else if (timeLeft > 80) instruct.innerText = "Brush Chewing Surfaces";
+                else if (timeLeft > 70) instruct.innerText = "Brush Chewing Surfaces";
+                else if (timeLeft > 60) instruct.innerText = "Brush Chewing Surfaces";
+                else if (timeLeft > 50) instruct.innerText = "Brush Chewing Surfaces";
+                else if (timeLeft > 40) instruct.innerText = "Brush Chewing Surfaces";
+                else if (timeLeft > 30) instruct.innerText = "Brush Chewing Surfaces";
+                else if (timeLeft > 20) instruct.innerText = "Brush Chewing Surfaces";
                 else if (timeLeft > 10) instruct.innerText = "Brush Chewing Surfaces";
                 else instruct.innerText = "Don't forget your tongue!";
 
