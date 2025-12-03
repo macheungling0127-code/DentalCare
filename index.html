@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="manifest" href="manifest.json">
+    <title>Dental Care Pet</title>
+    <style>
+        /* CSS STYLES */
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #333;
+            font-family: 'Arial', sans-serif;
+            touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        canvas {
+            display: block;
+            image-rendering: pixelated;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* UI OVERLAY */
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .coin-display {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.5);
+            color: gold;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 20px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .btn {
+            pointer-events: auto;
+            background: #fff;
+            border: 3px solid #4a4a4a;
+            border-radius: 10px;
+            padding: 10px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px #000;
+            font-size: 14px;
+        }
+        .btn:active { box-shadow: 0 1px #000; transform: translateY(3px); }
+
+        /* Top Left Buttons */
+        #top-left-menu {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            max-width: 80%;
+        }
+
+        /* MOBILE CONTROLS */
+        #controls {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            pointer-events: auto;
+            display: grid;
+            grid-template-columns: 60px 60px 60px;
+            grid-template-rows: 60px 60px;
+            gap: 5px;
+        }
+        .d-btn {
+            width: 60px;
+            height: 60px;
+            background: rgba(255,255,255,0.3);
+            border-radius: 10px;
+            border: 2px solid rgba(255,255,255,0.5);
+            touch-action: manipulation;
+        }
+        .d-btn:active { background: rgba(255,255,255,0.6); }
+        #btn-up { grid-column: 2; grid-row: 1; }
+        #btn-left { grid-column: 1; grid-row: 2; }
+        #btn-down { grid-column: 2; grid-row: 2; }
+        #btn-right { grid-column: 3; grid-row: 2; }
+
+        #action-btn {
+            position: absolute;
+            bottom: 30px;
+            right: 30px;
+            width: 80px;
+            height: 80px;
+            background: rgba(255, 200, 0, 0.5);
+            border-radius: 50%;
+            border: 3px solid white;
+            pointer-events: auto;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            color: white;
+            user-select: none;
+        }
+        #action-btn:active { background: rgba(255, 200, 0, 0.8); }
+
+        /* MODALS */
+        .modal {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            border: 5px solid #4a4a4a;
+            border-radius: 15px;
+            padding: 20px;
+            width: 85%;
+            max-width: 400px;
+            max-height: 85vh;
+            overflow-y: auto;
+            text-align: center;
+            display: none;
+            pointer-events: auto;
+            box-shadow: 0 10px 50px rgba(0,0,0,0.5);
+            z-index: 100;
+        }
+        
+        .modal h2 { margin-top: 0; color: #333; }
+        
+        /* Lists */
+        .list-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #eee;
+            margin: 8px 0;
+            padding: 10px;
+            border-radius: 8px;
+            border: 2px solid transparent;
+        }
+        .list-item.active {
+            border: 2px solid #27ae60;
+            background: #d5f5e3;
+        }
+
+        .emoji-icon { font-size: 24px; margin-right: 10px; }
+
+        /* Calendar Grid */
+        #calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 5px;
+            margin-top: 15px;
+        }
+        .cal-day {
+            padding: 8px 2px;
+            background: #f0f0f0;
+            border-radius: 5px;
+            font-size: 12px;
+        }
+        .cal-day.active {
+            background: #27ae60;
+            color: white;
+            font-weight: bold;
+            border: 1px solid #1e8449;
+        }
+
+        #timer-display { font-size: 40px; color: #e74c3c; font-weight: bold; }
+        #timer-instruction { font-size: 18px; color: #555; margin-bottom: 20px; min-height: 50px;}
+
+        .quiz-option {
+            display: block;
+            width: 100%;
+            margin: 10px 0;
+            padding: 12px;
+            background: #f0f0f0;
+            border: 2px solid #ccc;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="gameCanvas"></canvas>
+
+    <div id="ui-layer">
+        <div class="coin-display">
+            <img src="images/coin.png" style="width:24px;"> <span id="coin-count">0</span>
+        </div>
+        
+        <div id="top-left-menu">
+            <button id="brush-btn" class="btn">🦷 Brush Mode</button>
+            <button id="inventory-btn" class="btn" onclick="openInventory()">🎒 Bag</button>
+            <button id="calendar-btn" class="btn" onclick="openCalendar()">📅 Calendar</button>
+        </div>
+
+        <div id="controls">
+            <div id="btn-up" class="d-btn"></div>
+            <div id="btn-left" class="d-btn"></div>
+            <div id="btn-down" class="d-btn"></div>
+            <div id="btn-right" class="d-btn"></div>
+        </div>
+        <div id="action-btn">INTERACT</div>
+    </div>
+
+    <!-- MODALS -->
+
+    <div id="login-modal" class="modal">
+        <h2>📅 Daily Login!</h2>
+        <p>Welcome back! Streak recorded.</p>
+        <h3 style="color:gold">+50 Coins</h3>
+        <button class="btn" onclick="closeModal('login-modal')">Awesome!</button>
+    </div>
+
+    <!-- Calendar Modal -->
+    <div id="calendar-modal" class="modal">
+        <h2>📅 Login History</h2>
+        <p>Green days are days you took care of your pet!</p>
+        <div id="calendar-grid"></div>
+        <br>
+        <button class="btn" onclick="closeModal('calendar-modal')">Close</button>
+    </div>
+
+    <div id="shop-modal" class="modal">
+        <h2>🏪 Dental Shop</h2>
+        <p>Customize Player & Pet!</p>
+        <div id="shop-items"></div>
+        <br>
+        <button class="btn" onclick="closeModal('shop-modal')">Close</button>
+    </div>
+
+    <div id="inventory-modal" class="modal">
+        <h2>🎒 My Backpack</h2>
+        <p>Limit: Max 3 Equipped Items</p>
+        <div id="inventory-items"></div>
+        <br>
+        <button class="btn" onclick="closeModal('inventory-modal')">Close</button>
+    </div>
+
+    <div id="interact-modal" class="modal">
+        <h2>🤖 Pet Interaction</h2>
+        <p>What would you like to do?</p>
+        <button class="btn" onclick="startQuiz()">Take Dental Quiz (+Coins)</button>
+        <br><br>
+        <button class="btn" onclick="closeModal('interact-modal')">Close</button>
+    </div>
+
+    <div id="quiz-modal" class="modal">
+        <h2 id="quiz-header">Quiz Time</h2>
+        <p id="quiz-question" style="font-size:18px; font-weight:bold;">Question?</p>
+        <div id="quiz-options"></div>
+    </div>
+
+    <div id="timer-modal" class="modal">
+        <h2>🦷 Brushing Time</h2>
+        <div id="timer-display">02:00</div>
+        <div id="timer-instruction">Get your toothbrush ready...</div>
+        <button id="start-timer-btn" class="btn" onclick="startBrushing()">Start</button>
+        <button class="btn" onclick="closeModal('timer-modal'); stopBrushing();">Exit</button>
+    </div>
+
+    <script>
+        // --- ASSET MANAGEMENT ---
+        const images = {};
+        const imageSources = {
+            ground: 'images/ground_tile.png',
+            fence: 'images/fence.png',
+            torch: 'images/torch.png',
+            grass1: 'images/grass_1.png',
+            grass2: 'images/grass_2.png',
+            grass3: 'images/grass_3.png',
+            shop: 'images/shop_door.png',
+            player_idle: 'images/char_idle.png',
+            player_walk1: 'images/char_walk1.png',
+            player_walk2: 'images/char_walk2.png',
+            player_jump: 'images/char_jump.png',
+            pet_idle: 'images/pet_idle.png',
+            pet_fly1: 'images/pet_fly1.png',
+            pet_fly2: 'images/pet_fly2.png',
+            coin: 'images/coin.png',
+            water: 'images/water.png'
+        };
+
+        let assetsLoaded = 0;
+        const totalAssets = Object.keys(imageSources).length;
+
+        function loadImages() {
+            for (let key in imageSources) {
+                images[key] = new Image();
+                images[key].src = imageSources[key];
+                images[key].onload = () => {
+                    assetsLoaded++;
+                    if (assetsLoaded === totalAssets) startGame();
+                };
+                images[key].onerror = () => {
+                    assetsLoaded++; // Skip errors
+                    if (assetsLoaded === totalAssets) startGame();
+                }
+            }
+        }
+
+        // --- GAME STATE ---
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        let width, height;
+        let keys = {};
+        
+        // Data Persistence
+        let userData = {
+            coins: parseInt(localStorage.getItem('dental_coins')) || 0,
+            lastLogin: localStorage.getItem('dental_last_login') || null,
+            loginHistory: JSON.parse(localStorage.getItem('dental_login_history')) || [],
+            inventory: JSON.parse(localStorage.getItem('dental_inventory')) || [],
+            activeItems: JSON.parse(localStorage.getItem('dental_active')) || [],
+            quizHistory: JSON.parse(localStorage.getItem('dental_quiz_history')) || { date: null, answered: [] }
+        };
+
+        // INCREASED PLAYER SIZE (w:64, h:64)
+        const player = { x: 300, y: 300, w: 64, h: 64, baseSpeed: 4, speed: 4, frame: 0, dir: 1, isMoving: false };
+        const pet = { x: 340, y: 300, w: 32, h: 32, frame: 0 };
+        const shopDoor = { x: 0, y: 50, w: 60, h: 60 };
+        const grasses = [];
+        let particles = [];
+        const TILE_SIZE = 40;
+
+        function resize() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+            shopDoor.x = width / 2 - 30; 
+            shopDoor.y = 50; 
+        }
+
+        function initGrass() {
+            grasses.length = 0; // Clear existing
+            for(let i=0; i<30; i++) {
+                grasses.push({
+                    x: Math.random() * width,
+                    y: Math.random() * height,
+                    type: Math.floor(Math.random() * 3) + 1 
+                });
+            }
+        }
+
+        function checkDailyLogin() {
+            const today = new Date().toDateString();
+            if (userData.lastLogin !== today) {
+                userData.coins += 50;
+                userData.lastLogin = today;
+                if(!userData.loginHistory.includes(today)) {
+                    userData.loginHistory.push(today);
+                }
+                saveData();
+                document.getElementById('login-modal').style.display = 'block';
+                updateUI();
+            }
+        }
+
+        function saveData() {
+            localStorage.setItem('dental_coins', userData.coins);
+            localStorage.setItem('dental_last_login', userData.lastLogin);
+            localStorage.setItem('dental_login_history', JSON.stringify(userData.loginHistory));
+            localStorage.setItem('dental_inventory', JSON.stringify(userData.inventory));
+            localStorage.setItem('dental_active', JSON.stringify(userData.activeItems));
+            localStorage.setItem('dental_quiz_history', JSON.stringify(userData.quizHistory));
+        }
+
+        function startGame() {
+            window.addEventListener('resize', resize);
+            resize();
+            initGrass();
+            checkDailyLogin();
+            updateUI();
+            requestAnimationFrame(gameLoop);
+        }
+
+        loadImages(); 
+
+        window.addEventListener('keydown', e => keys[e.key] = true);
+        window.addEventListener('keyup', e => keys[e.key] = false);
+
+        const btnUp = document.getElementById('btn-up');
+        const btnDown = document.getElementById('btn-down');
+        const btnLeft = document.getElementById('btn-left');
+        const btnRight = document.getElementById('btn-right');
+        const btnAct = document.getElementById('action-btn');
+
+        const addTouch = (elem, key) => {
+            elem.addEventListener('touchstart', (e) => { e.preventDefault(); keys[key] = true; });
+            elem.addEventListener('touchend', (e) => { e.preventDefault(); keys[key] = false; });
+        };
+
+        addTouch(btnUp, 'ArrowUp');
+        addTouch(btnDown, 'ArrowDown');
+        addTouch(btnLeft, 'ArrowLeft');
+        addTouch(btnRight, 'ArrowRight');
+
+        btnAct.addEventListener('touchstart', (e) => { e.preventDefault(); interact(); });
+        btnAct.addEventListener('click', (e) => { interact(); });
+        window.addEventListener('keydown', (e) => { if(e.code === 'Space') interact(); });
+
+        function interact() {
+            if (checkCollision(player, shopDoor)) {
+                openShop();
+                return;
+            }
+            document.getElementById('interact-modal').style.display = 'block';
+        }
+
+        function update() {
+            // ITEMS LOGIC
+            if (userData.activeItems.includes('speed_boots')) player.speed = 8;
+            else player.speed = player.baseSpeed;
+
+            if (userData.activeItems.includes('big_pet')) { pet.w = 64; pet.h = 64; }
+            else { pet.w = 32; pet.h = 32; }
+
+            // Movement
+            player.isMoving = false;
+            let dx = 0; let dy = 0;
+
+            if (keys['ArrowUp'] || keys['w']) dy = -player.speed;
+            if (keys['ArrowDown'] || keys['s']) dy = player.speed;
+            if (keys['ArrowLeft'] || keys['a']) { dx = -player.speed; player.dir = -1; }
+            if (keys['ArrowRight'] || keys['d']) { dx = player.speed; player.dir = 1; }
+
+            if (dx !== 0 || dy !== 0) {
+                player.x += dx;
+                player.y += dy;
+                player.isMoving = true;
+                
+                // Full map boundaries (Account for fence size approx 40)
+                if(player.x < 40) player.x = 40;
+                if(player.y < 40) player.y = 40;
+                if(player.x > width - 40 - player.w) player.x = width - 40 - player.w;
+                if(player.y > height - 40 - player.h) player.y = height - 40 - player.h;
+
+                // Particle Emitters
+                let pColor = null;
+                if (userData.activeItems.includes('sparkle')) pColor = 'blue';
+                else if (userData.activeItems.includes('fire')) pColor = 'orange';
+                else if (userData.activeItems.includes('snow')) pColor = 'white';
+                else if (userData.activeItems.includes('rainbow')) pColor = `hsl(${Date.now()%360}, 100%, 50%)`;
+
+                if (pColor && Math.random() > 0.5) {
+                    particles.push({
+                        x: player.x + player.w/2,
+                        y: player.y + player.h,
+                        life: 20,
+                        color: pColor
+                    });
+                }
+            }
+
+            const time = Date.now();
+            if (player.isMoving) {
+                player.frame = Math.floor(time / 200) % 2; 
+            } else {
+                player.frame = 0;
+            }
+
+            // Pet Follow Logic
+            let dist = Math.hypot(player.x - pet.x, player.y - pet.y);
+            if (dist > 70) { // Increased follow distance since player is bigger
+                pet.x += (player.x - pet.x) * 0.05;
+                pet.y += (player.y - pet.y) * 0.05;
+            }
+            pet.frame = Math.floor(time / 300) % 2; 
+
+            particles.forEach((p, i) => {
+                p.life--;
+                p.y -= 1;
+                if(p.life <= 0) particles.splice(i, 1);
+            });
+        }
+
+        function draw() {
+            const pat = ctx.createPattern(images.ground, "repeat");
+            ctx.fillStyle = pat;
+            ctx.fillRect(0, 0, width, height);
+
+            drawFence();
+            ctx.drawImage(images.shop, shopDoor.x, shopDoor.y, shopDoor.w, shopDoor.h);
+            
+            grasses.forEach(g => {
+                let img = images['grass' + g.type];
+                ctx.drawImage(img, g.x, g.y, 32, 32);
+            });
+
+            // Player Drawing
+            let pImg;
+            if (!player.isMoving) pImg = images.player_idle;
+            else pImg = (player.frame === 0) ? images.player_walk1 : images.player_walk2;
+            
+            ctx.save();
+            ctx.translate(player.x + player.w/2, player.y + player.h/2);
+            ctx.scale(player.dir, 1); 
+            
+            if (userData.activeItems.includes('ghost')) ctx.globalAlpha = 0.5;
+            if (userData.activeItems.includes('shadow')) ctx.filter = 'brightness(0%)';
+
+            ctx.drawImage(pImg, -player.w/2, -player.h/2, player.w, player.h);
+            ctx.filter = 'none';
+            
+            // PLAYER COSMETICS
+            ctx.font = "24px Arial";
+            ctx.textAlign = "center";
+            
+            // Adjust emoji position for bigger player
+            if (userData.activeItems.includes('crown')) ctx.fillText("👑", 0, -player.h/2 - 5);
+            if (userData.activeItems.includes('glasses')) ctx.fillText("🕶️", 5, -player.h/2 + 25);
+            if (userData.activeItems.includes('bunny')) ctx.fillText("🐰", 0, -player.h/2 - 5);
+            if (userData.activeItems.includes('bowtie')) ctx.fillText("🎀", 0, player.h/2 - 10);
+            if (userData.activeItems.includes('balloon')) ctx.fillText("🎈", -20, -player.h);
+
+            ctx.globalAlpha = 1.0; 
+            ctx.restore();
+
+            // PET DRAWING
+            let petImg = (pet.frame === 0) ? images.pet_fly1 : images.pet_fly2;
+            let floatY = pet.y - 10 * Math.sin(Date.now()/500);
+            ctx.drawImage(petImg, pet.x, floatY, pet.w, pet.h);
+
+            // PET COSMETICS
+            ctx.font = "20px Arial";
+            if (userData.activeItems.includes('pet_hat')) ctx.fillText("🎩", pet.x + pet.w/2, floatY - 5);
+            if (userData.activeItems.includes('pet_bow')) ctx.fillText("🎀", pet.x + pet.w/2, floatY + pet.h);
+            if (userData.activeItems.includes('pet_shades')) ctx.fillText("🕶️", pet.x + pet.w/2, floatY + 15);
+
+            // Particles
+            particles.forEach(p => {
+                ctx.globalAlpha = p.life / 20;
+                if(p.color === 'blue') ctx.drawImage(images.water, p.x, p.y, 16, 16);
+                else {
+                    ctx.fillStyle = p.color;
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, 5, 0, Math.PI*2);
+                    ctx.fill();
+                }
+                ctx.globalAlpha = 1.0;
+            });
+        }
+
+        function drawFence() {
+            const cols = Math.ceil(width / TILE_SIZE);
+            const rows = Math.ceil(height / TILE_SIZE);
+            
+            // Top & Bottom
+            for(let i=0; i<cols; i++) {
+                ctx.drawImage(images.fence, i*TILE_SIZE, 0, TILE_SIZE, TILE_SIZE);
+                ctx.drawImage(images.fence, i*TILE_SIZE, height-TILE_SIZE, TILE_SIZE, TILE_SIZE);
+                if(i % 5 === 0) ctx.drawImage(images.torch, i*TILE_SIZE, -10, 30, 50);
+            }
+            // Left & Right
+            for(let i=0; i<rows; i++) {
+                ctx.drawImage(images.fence, 0, i*TILE_SIZE, TILE_SIZE, TILE_SIZE);
+                ctx.drawImage(images.fence, width-TILE_SIZE, i*TILE_SIZE, TILE_SIZE, TILE_SIZE);
+            }
+        }
+
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        function checkCollision(rect1, rect2) {
+            return (rect1.x < rect2.x + rect2.w &&
+                    rect1.x + rect1.w > rect2.x &&
+                    rect1.y < rect2.y + rect2.h &&
+                    rect1.y + rect1.h > rect2.y);
+        }
+
+        function updateUI() {
+            document.getElementById('coin-count').innerText = userData.coins;
+        }
+
+        // --- SHOP SYSTEM (Extended) ---
+        const allItems = [
+            // Player Effects
+            { id: 'sparkle', name: 'Water Trail', cost: 100, emoji: '💧' },
+            { id: 'fire', name: 'Fire Trail', cost: 150, emoji: '🔥' },
+            { id: 'snow', name: 'Snow Trail', cost: 150, emoji: '❄️' },
+            { id: 'rainbow', name: 'Rainbow Trail', cost: 300, emoji: '🌈' },
+            // Player Stat Mods
+            { id: 'big_pet', name: 'Growth Potion', cost: 250, emoji: '🧪' },
+            { id: 'speed_boots', name: 'Speed Boots', cost: 300, emoji: '👟' },
+            { id: 'ghost', name: 'Ghost Spirit', cost: 500, emoji: '👻' },
+            { id: 'shadow', name: 'Shadow Mode', cost: 600, emoji: '🌑' },
+            // Player Cosmetics
+            { id: 'crown', name: 'Gold Crown', cost: 1000, emoji: '👑' },
+            { id: 'glasses', name: 'Cool Shades', cost: 200, emoji: '🕶️' },
+            { id: 'bunny', name: 'Bunny Ears', cost: 350, emoji: '🐰' },
+            { id: 'bowtie', name: 'Bow Tie', cost: 150, emoji: '🎀' },
+            // Pet Cosmetics (NEW)
+            { id: 'pet_hat', name: 'Pet Top Hat', cost: 400, emoji: '🎩' },
+            { id: 'pet_bow', name: 'Pet Bow', cost: 150, emoji: '🎀' },
+            { id: 'pet_shades', name: 'Pet Shades', cost: 300, emoji: '🕶️' }
+        ];
+
+        function openShop() {
+            const list = document.getElementById('shop-items');
+            list.innerHTML = '';
+            
+            allItems.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'list-item';
+                const hasIt = userData.inventory.includes(item.id);
+                
+                div.innerHTML = `
+                    <div style="display:flex;align-items:center;">
+                        <span class="emoji-icon">${item.emoji}</span>
+                        <b>${item.name}</b>
+                    </div>
+                    ${hasIt ? '<span style="color:green">Owned</span>' : `<button class="btn" onclick="buyItem('${item.id}', ${item.cost})">${item.cost} G</button>`}
+                `;
+                list.appendChild(div);
+            });
+            document.getElementById('shop-modal').style.display = 'block';
+        }
+
+        window.buyItem = function(id, cost) {
+            if (userData.coins >= cost) {
+                userData.coins -= cost;
+                userData.inventory.push(id);
+                saveData();
+                updateUI();
+                openShop(); 
+            } else {
+                alert("Not enough coins!");
+            }
+        };
+
+        window.openInventory = function() {
+            const list = document.getElementById('inventory-items');
+            list.innerHTML = '';
+
+            if (userData.inventory.length === 0) {
+                list.innerHTML = "<p>Your bag is empty. Visit the shop!</p>";
+            } else {
+                userData.inventory.forEach(itemId => {
+                    const itemDef = allItems.find(i => i.id === itemId);
+                    if (!itemDef) return;
+
+                    const isEquipped = userData.activeItems.includes(itemId);
+                    const div = document.createElement('div');
+                    div.className = 'list-item' + (isEquipped ? ' active' : '');
+                    
+                    div.innerHTML = `
+                        <div style="display:flex;align-items:center;">
+                            <span class="emoji-icon">${itemDef.emoji}</span>
+                            <b>${itemDef.name}</b>
+                        </div>
+                        <button class="btn" onclick="toggleItem('${itemId}')">
+                            ${isEquipped ? 'Unequip' : 'Equip'}
+                        </button>
+                    `;
+                    list.appendChild(div);
+                });
+            }
+            document.getElementById('inventory-modal').style.display = 'block';
+        };
+
+        // LIMIT: MAX 3 ITEMS
+        window.toggleItem = function(id) {
+            const idx = userData.activeItems.indexOf(id);
+            if (idx > -1) {
+                // Unequip
+                userData.activeItems.splice(idx, 1);
+            } else {
+                // Equip (Check Limit)
+                if (userData.activeItems.length >= 3) {
+                    alert("⚠️ Bag Full! You can only equip 3 items.\nUnequip something first.");
+                    return;
+                }
+                userData.activeItems.push(id);
+            }
+            saveData();
+            openInventory(); 
+        };
+
+        // --- CALENDAR SYSTEM ---
+        window.openCalendar = function() {
+            const grid = document.getElementById('calendar-grid');
+            grid.innerHTML = '';
+            
+            const today = new Date();
+            const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+            const currentMonthStr = today.toDateString().substring(4, 7); 
+
+            for(let i=1; i<=daysInMonth; i++) {
+                const dayDiv = document.createElement('div');
+                dayDiv.className = 'cal-day';
+                dayDiv.innerText = i;
+                
+                const isLogged = userData.loginHistory.some(d => {
+                   const dObj = new Date(d);
+                   return dObj.getDate() === i && dObj.getMonth() === today.getMonth();
+                });
+
+                if(isLogged) dayDiv.classList.add('active');
+                
+                grid.appendChild(dayDiv);
+            }
+            document.getElementById('calendar-modal').style.display = 'block';
+        };
+
+        // --- QUIZ LOGIC ---
+        const quizQuestions = [
+            { q: "How long should you brush?", a: ["30 seconds", "2 minutes", "5 minutes"], correct: 1 },
+            { q: "How often should you floss?", a: ["Once a week", "Every day", "Never"], correct: 1 },
+            { q: "What helps strengthen teeth?", a: ["Sugar", "Fluoride", "Lemon Juice"], correct: 1 },
+            { q: "When is the best time to brush?", a: ["After breakfast & before bed", "Only morning", "Once a week"], correct: 0 },
+            { q: "What is a cavity?", a: ["A type of candy", "A hole in the tooth", "A toothbrush brand"], correct: 1 },
+            { q: "How often should you change your toothbrush?", a: ["Every 3-4 months", "Every year", "When it breaks"], correct: 0 },
+            { q: "What food is bad for teeth?", a: ["Cheese", "Sticky Candy", "Milk"], correct: 1 },
+            { q: "What does a dentist do?", a: ["Fixes cars", "Checks teeth health", "Sells toys"], correct: 1 },
+            { q: "Why do we floss?", a: ["To clean between teeth", "To make teeth blue", "It tastes good"], correct: 0 },
+            { q: "What is plaque?", a: ["A sticky film of bacteria", "A gold medal", "Toothpaste"], correct: 0 },
+            { q: "Which drink is best for teeth?", a: ["Soda", "Water", "Energy drinks"], correct: 1 },
+            { q: "How many times a day should you brush?", a: ["1", "2", "5"], correct: 1 }
+        ];
+
+        window.startQuiz = function() {
+            closeModal('interact-modal');
+
+            const today = new Date().toDateString();
+            if (userData.quizHistory.date !== today) {
+                userData.quizHistory = { date: today, answered: [] };
+                saveData();
+            }
+
+            if (userData.quizHistory.answered.length >= 3) {
+                alert("🧠 You've completed your 3 daily quizzes!\nCome back tomorrow for more.");
+                return;
+            }
+
+            loadNextQuestion();
+        };
+
+        function loadNextQuestion() {
+            if (userData.quizHistory.answered.length >= 3) {
+                closeModal('quiz-modal');
+                alert("🎉 Daily Quizzes Completed!");
+                return;
+            }
+
+            const availableIndices = quizQuestions.map((_, i) => i).filter(i => !userData.quizHistory.answered.includes(i));
+            
+            if (availableIndices.length === 0) {
+                alert("You've answered all available questions!");
+                closeModal('quiz-modal');
+                return;
+            }
+
+            const randIndex = Math.floor(Math.random() * availableIndices.length);
+            const questionIndex = availableIndices[randIndex];
+            const q = quizQuestions[questionIndex];
+
+            const modal = document.getElementById('quiz-modal');
+            modal.style.display = 'block';
+            
+            const count = userData.quizHistory.answered.length + 1;
+            document.getElementById('quiz-header').innerText = `Daily Question ${count}/3`;
+            document.getElementById('quiz-question').innerText = q.q;
+            
+            const opts = document.getElementById('quiz-options');
+            opts.innerHTML = '';
+            
+            q.a.forEach((ans, idx) => {
+                const btn = document.createElement('button');
+                btn.className = 'quiz-option';
+                btn.innerText = ans;
+                btn.onclick = () => {
+                    userData.quizHistory.answered.push(questionIndex);
+                    
+                    if (idx === q.correct) {
+                        alert("✅ Correct! +20 Coins");
+                        userData.coins += 20;
+                    } else {
+                        alert("❌ Oops! That wasn't right.");
+                    }
+                    
+                    saveData();
+                    updateUI();
+                    
+                    if (userData.quizHistory.answered.length < 3) {
+                        loadNextQuestion();
+                    } else {
+                        closeModal('quiz-modal');
+                        alert("🎉 You finished all quizzes for today!");
+                    }
+                };
+                opts.appendChild(btn);
+            });
+        }
+
+        let brushInterval;
+        document.getElementById('brush-btn').addEventListener('click', () => {
+            document.getElementById('timer-modal').style.display = 'block';
+        });
+
+        window.startBrushing = function() {
+            document.getElementById('start-timer-btn').style.display = 'none';
+            let timeLeft = 120; 
+            const display = document.getElementById('timer-display');
+            const instruct = document.getElementById('timer-instruction');
+
+            brushInterval = setInterval(() => {
+                timeLeft--;
+                let m = Math.floor(timeLeft / 60);
+                let s = timeLeft % 60;
+                display.innerText = `0${m}:${s < 10 ? '0'+s : s}`;
+
+                if (timeLeft > 90) instruct.innerText = "Brush Top Teeth (Outer Surface)";
+                else if (timeLeft > 60) instruct.innerText = "Brush Top Teeth (Inner Surface)";
+                else if (timeLeft > 30) instruct.innerText = "Brush Bottom Teeth";
+                else if (timeLeft > 10) instruct.innerText = "Brush Chewing Surfaces";
+                else instruct.innerText = "Don't forget your tongue!";
+
+                if (timeLeft <= 0) {
+                    clearInterval(brushInterval);
+                    instruct.innerText = "All done! Shiny Smile! +100 Coins";
+                    userData.coins += 100;
+                    saveData();
+                    updateUI();
+                    setTimeout(() => closeModal('timer-modal'), 3000);
+                }
+            }, 1000);
+        };
+
+        window.stopBrushing = function() {
+            clearInterval(brushInterval);
+            document.getElementById('start-timer-btn').style.display = 'inline-block';
+            document.getElementById('timer-display').innerText = "02:00";
+            document.getElementById('timer-instruction').innerText = "Get Ready...";
+        };
+
+        window.closeModal = function(id) {
+            document.getElementById(id).style.display = 'none';
+        };
+
+    </script>
+</body>
+</html>

@@ -1,0 +1,21 @@
+{
+  "name": "Dental Garden Pet",
+  "short_name": "DentalPet",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#87CEEB",
+  "theme_color": "#87CEEB",
+  "orientation": "landscape",
+  "icons": [
+    {
+      "src": "char_idle.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "char_idle.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
