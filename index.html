@@ -6,7 +6,12 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="manifest" href="manifest.json">
-    <title>Dental Care Pet</title>
+
+    <!-- NEW ICON LINKS -->
+    <link rel="apple-touch-icon" href="images/app_icon.png">
+    <link rel="icon" type="image/png" href="images/app_icon.png">
+    
+    <title>DentalCare</title>
     <style>
         /* CSS STYLES */
         body {
@@ -68,7 +73,7 @@
         #top-left-menu {
             position: absolute;
             top: 10px;
-            left: 10px;
+            left: 50px; /* Shifted right to avoid flags at x=70 */
             display: flex;
             gap: 10px;
             flex-wrap: wrap;
@@ -180,8 +185,20 @@
             border: 1px solid #1e8449;
         }
 
+        /* Timer Specifics */
         #timer-display { font-size: 40px; color: #e74c3c; font-weight: bold; }
-        #timer-instruction { font-size: 18px; color: #555; margin-bottom: 20px; min-height: 50px;}
+        #timer-instruction { font-size: 18px; color: #555; margin-bottom: 10px; min-height: 40px;}
+        
+        #brushing-guide-img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 10px;
+            border: 2px solid #ccc;
+            margin-bottom: 15px;
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+        }
 
         .quiz-option {
             display: block;
@@ -229,7 +246,6 @@
         <button class="btn" onclick="closeModal('login-modal')">Awesome!</button>
     </div>
 
-    <!-- Calendar Modal -->
     <div id="calendar-modal" class="modal">
         <h2>📅 Login History</h2>
         <p>Green days are days you took care of your pet!</p>
@@ -271,6 +287,8 @@
     <div id="timer-modal" class="modal">
         <h2>🦷 Brushing Time</h2>
         <div id="timer-display">02:00</div>
+        <!-- Added Guide Image Here -->
+        <img id="brushing-guide-img" src="images/brushing_guide.png" alt="Brushing Guide">
         <div id="timer-instruction">Get your toothbrush ready...</div>
         <button id="start-timer-btn" class="btn" onclick="startBrushing()">Start</button>
         <button class="btn" onclick="closeModal('timer-modal'); stopBrushing();">Exit</button>
@@ -295,7 +313,15 @@
             pet_fly1: 'images/pet_fly1.png',
             pet_fly2: 'images/pet_fly2.png',
             coin: 'images/coin.png',
-            water: 'images/water.png'
+            water: 'images/water.png',
+            flag_blue_a: 'images/flag_blue_a.png',
+            flag_blue_b: 'images/flag_blue_b.png',
+            flag_green_a: 'images/flag_green_a.png',
+            flag_green_b: 'images/flag_green_b.png',
+            flag_red_a: 'images/flag_red_a.png',
+            flag_red_b: 'images/flag_red_b.png',
+            flag_yellow_a: 'images/flag_yellow_a.png',
+            flag_yellow_b: 'images/flag_yellow_b.png'
         };
 
         let assetsLoaded = 0;
@@ -310,7 +336,7 @@
                     if (assetsLoaded === totalAssets) startGame();
                 };
                 images[key].onerror = () => {
-                    assetsLoaded++; // Skip errors
+                    assetsLoaded++;
                     if (assetsLoaded === totalAssets) startGame();
                 }
             }
@@ -323,7 +349,6 @@
         let width, height;
         let keys = {};
         
-        // Data Persistence
         let userData = {
             coins: parseInt(localStorage.getItem('dental_coins')) || 0,
             lastLogin: localStorage.getItem('dental_last_login') || null,
@@ -333,13 +358,20 @@
             quizHistory: JSON.parse(localStorage.getItem('dental_quiz_history')) || { date: null, answered: [] }
         };
 
-        // INCREASED PLAYER SIZE (w:64, h:64)
         const player = { x: 300, y: 300, w: 64, h: 64, baseSpeed: 4, speed: 4, frame: 0, dir: 1, isMoving: false };
         const pet = { x: 340, y: 300, w: 32, h: 32, frame: 0 };
         const shopDoor = { x: 0, y: 50, w: 60, h: 60 };
         const grasses = [];
         let particles = [];
         const TILE_SIZE = 40;
+
+        // FLAGS UPDATED TO X=70
+        const flagLinks = [
+            { color: 'red',    url: 'https://www.youtube.com', x: 100, y: 260 },
+            { color: 'blue',   url: 'https://www.google.com',  x: 100, y: 340 },
+            { color: 'green',  url: 'https://www.wikipedia.org', x: 100, y: 420 },
+            { color: 'yellow', url: 'https://github.com',      x: 100, y: 500 }
+        ];
 
         function resize() {
             width = canvas.width = window.innerWidth;
@@ -349,7 +381,7 @@
         }
 
         function initGrass() {
-            grasses.length = 0; // Clear existing
+            grasses.length = 0;
             for(let i=0; i<30; i++) {
                 grasses.push({
                     x: Math.random() * width,
@@ -417,22 +449,46 @@
         window.addEventListener('keydown', (e) => { if(e.code === 'Space') interact(); });
 
         function interact() {
+            // 1. Check Shop Collision
             if (checkCollision(player, shopDoor)) {
                 openShop();
                 return;
             }
+
+            // 2. Check Flag Collision (Proximity)
+            const pCenterX = player.x + player.w/2;
+            const pCenterY = player.y + player.h/2;
+            let foundFlag = null;
+
+            flagLinks.forEach(f => {
+                // Flag center approx (f.x+20, f.y+20)
+                const fCenterX = f.x + 20;
+                const fCenterY = f.y + 20;
+                // Distance check
+                const dist = Math.hypot(pCenterX - fCenterX, pCenterY - fCenterY);
+                if (dist < 60) { // If within 60px of the flag center
+                    foundFlag = f;
+                }
+            });
+
+            if (foundFlag) {
+                if(confirm("Go to website: " + foundFlag.url + "?")) {
+                    window.open(foundFlag.url, '_blank');
+                }
+                return;
+            }
+
+            // 3. Default Pet Interaction
             document.getElementById('interact-modal').style.display = 'block';
         }
 
         function update() {
-            // ITEMS LOGIC
             if (userData.activeItems.includes('speed_boots')) player.speed = 8;
             else player.speed = player.baseSpeed;
 
             if (userData.activeItems.includes('big_pet')) { pet.w = 64; pet.h = 64; }
             else { pet.w = 32; pet.h = 32; }
 
-            // Movement
             player.isMoving = false;
             let dx = 0; let dy = 0;
 
@@ -446,13 +502,11 @@
                 player.y += dy;
                 player.isMoving = true;
                 
-                // Full map boundaries (Account for fence size approx 40)
                 if(player.x < 40) player.x = 40;
                 if(player.y < 40) player.y = 40;
                 if(player.x > width - 40 - player.w) player.x = width - 40 - player.w;
                 if(player.y > height - 40 - player.h) player.y = height - 40 - player.h;
 
-                // Particle Emitters
                 let pColor = null;
                 if (userData.activeItems.includes('sparkle')) pColor = 'blue';
                 else if (userData.activeItems.includes('fire')) pColor = 'orange';
@@ -476,9 +530,8 @@
                 player.frame = 0;
             }
 
-            // Pet Follow Logic
             let dist = Math.hypot(player.x - pet.x, player.y - pet.y);
-            if (dist > 70) { // Increased follow distance since player is bigger
+            if (dist > 70) {
                 pet.x += (player.x - pet.x) * 0.05;
                 pet.y += (player.y - pet.y) * 0.05;
             }
@@ -499,12 +552,20 @@
             drawFence();
             ctx.drawImage(images.shop, shopDoor.x, shopDoor.y, shopDoor.w, shopDoor.h);
             
+            const flagFrame = Math.floor(Date.now() / 400) % 2; 
+            flagLinks.forEach(f => {
+                const suffix = (flagFrame === 0) ? 'a' : 'b';
+                const key = `flag_${f.color}_${suffix}`;
+                if(images[key]) {
+                    ctx.drawImage(images[key], f.x, f.y, 40, 40); 
+                }
+            });
+
             grasses.forEach(g => {
                 let img = images['grass' + g.type];
                 ctx.drawImage(img, g.x, g.y, 32, 32);
             });
 
-            // Player Drawing
             let pImg;
             if (!player.isMoving) pImg = images.player_idle;
             else pImg = (player.frame === 0) ? images.player_walk1 : images.player_walk2;
@@ -519,11 +580,9 @@
             ctx.drawImage(pImg, -player.w/2, -player.h/2, player.w, player.h);
             ctx.filter = 'none';
             
-            // PLAYER COSMETICS
             ctx.font = "24px Arial";
             ctx.textAlign = "center";
             
-            // Adjust emoji position for bigger player
             if (userData.activeItems.includes('crown')) ctx.fillText("👑", 0, -player.h/2 - 5);
             if (userData.activeItems.includes('glasses')) ctx.fillText("🕶️", 5, -player.h/2 + 25);
             if (userData.activeItems.includes('bunny')) ctx.fillText("🐰", 0, -player.h/2 - 5);
@@ -533,18 +592,15 @@
             ctx.globalAlpha = 1.0; 
             ctx.restore();
 
-            // PET DRAWING
             let petImg = (pet.frame === 0) ? images.pet_fly1 : images.pet_fly2;
             let floatY = pet.y - 10 * Math.sin(Date.now()/500);
             ctx.drawImage(petImg, pet.x, floatY, pet.w, pet.h);
 
-            // PET COSMETICS
             ctx.font = "20px Arial";
             if (userData.activeItems.includes('pet_hat')) ctx.fillText("🎩", pet.x + pet.w/2, floatY - 5);
             if (userData.activeItems.includes('pet_bow')) ctx.fillText("🎀", pet.x + pet.w/2, floatY + pet.h);
             if (userData.activeItems.includes('pet_shades')) ctx.fillText("🕶️", pet.x + pet.w/2, floatY + 15);
 
-            // Particles
             particles.forEach(p => {
                 ctx.globalAlpha = p.life / 20;
                 if(p.color === 'blue') ctx.drawImage(images.water, p.x, p.y, 16, 16);
@@ -562,13 +618,11 @@
             const cols = Math.ceil(width / TILE_SIZE);
             const rows = Math.ceil(height / TILE_SIZE);
             
-            // Top & Bottom
             for(let i=0; i<cols; i++) {
                 ctx.drawImage(images.fence, i*TILE_SIZE, 0, TILE_SIZE, TILE_SIZE);
                 ctx.drawImage(images.fence, i*TILE_SIZE, height-TILE_SIZE, TILE_SIZE, TILE_SIZE);
                 if(i % 5 === 0) ctx.drawImage(images.torch, i*TILE_SIZE, -10, 30, 50);
             }
-            // Left & Right
             for(let i=0; i<rows; i++) {
                 ctx.drawImage(images.fence, 0, i*TILE_SIZE, TILE_SIZE, TILE_SIZE);
                 ctx.drawImage(images.fence, width-TILE_SIZE, i*TILE_SIZE, TILE_SIZE, TILE_SIZE);
@@ -592,24 +646,20 @@
             document.getElementById('coin-count').innerText = userData.coins;
         }
 
-        // --- SHOP SYSTEM (Extended) ---
+        // --- SHOP SYSTEM ---
         const allItems = [
-            // Player Effects
             { id: 'sparkle', name: 'Water Trail', cost: 100, emoji: '💧' },
             { id: 'fire', name: 'Fire Trail', cost: 150, emoji: '🔥' },
             { id: 'snow', name: 'Snow Trail', cost: 150, emoji: '❄️' },
             { id: 'rainbow', name: 'Rainbow Trail', cost: 300, emoji: '🌈' },
-            // Player Stat Mods
             { id: 'big_pet', name: 'Growth Potion', cost: 250, emoji: '🧪' },
             { id: 'speed_boots', name: 'Speed Boots', cost: 300, emoji: '👟' },
             { id: 'ghost', name: 'Ghost Spirit', cost: 500, emoji: '👻' },
             { id: 'shadow', name: 'Shadow Mode', cost: 600, emoji: '🌑' },
-            // Player Cosmetics
             { id: 'crown', name: 'Gold Crown', cost: 1000, emoji: '👑' },
             { id: 'glasses', name: 'Cool Shades', cost: 200, emoji: '🕶️' },
             { id: 'bunny', name: 'Bunny Ears', cost: 350, emoji: '🐰' },
             { id: 'bowtie', name: 'Bow Tie', cost: 150, emoji: '🎀' },
-            // Pet Cosmetics (NEW)
             { id: 'pet_hat', name: 'Pet Top Hat', cost: 400, emoji: '🎩' },
             { id: 'pet_bow', name: 'Pet Bow', cost: 150, emoji: '🎀' },
             { id: 'pet_shades', name: 'Pet Shades', cost: 300, emoji: '🕶️' }
@@ -678,16 +728,13 @@
             document.getElementById('inventory-modal').style.display = 'block';
         };
 
-        // LIMIT: MAX 3 ITEMS
         window.toggleItem = function(id) {
             const idx = userData.activeItems.indexOf(id);
             if (idx > -1) {
-                // Unequip
                 userData.activeItems.splice(idx, 1);
             } else {
-                // Equip (Check Limit)
-                if (userData.activeItems.length >= 5) {
-                    alert("⚠️ Bag Full! You can only equip 5 items.\nUnequip something first.");
+                if (userData.activeItems.length >= 3) {
+                    alert("⚠️ Bag Full! You can only equip 3 items.\nUnequip something first.");
                     return;
                 }
                 userData.activeItems.push(id);
@@ -696,7 +743,6 @@
             openInventory(); 
         };
 
-        // --- CALENDAR SYSTEM ---
         window.openCalendar = function() {
             const grid = document.getElementById('calendar-grid');
             grid.innerHTML = '';
@@ -722,10 +768,9 @@
             document.getElementById('calendar-modal').style.display = 'block';
         };
 
-        // --- QUIZ LOGIC ---
         const quizQuestions = [
             { q: "How long should you brush?", a: ["30 seconds", "2 minutes", "5 minutes"], correct: 1 },
-            { q: "How often should you floss?", a: ["Once a week", "Every day", "Nef"], correct: 1 },
+            { q: "How often should you floss?", a: ["Once a week", "Every day", "Never"], correct: 1 },
             { q: "What helps strengthen teeth?", a: ["Sugar", "Fluoride", "Lemon Juice"], correct: 1 },
             { q: "When is the best time to brush?", a: ["After breakfast & before bed", "Only morning", "Once a week"], correct: 0 },
             { q: "What is a cavity?", a: ["A type of candy", "A hole in the tooth", "A toothbrush brand"], correct: 1 },
@@ -747,8 +792,8 @@
                 saveData();
             }
 
-            if (userData.quizHistory.answered.length >= 10) {
-                alert("🧠 You've completed your 10 daily quizzes!\nCome back tomorrow for more.");
+            if (userData.quizHistory.answered.length >= 3) {
+                alert("🧠 You've completed your 3 daily quizzes!\nCome back tomorrow for more.");
                 return;
             }
 
@@ -756,7 +801,7 @@
         };
 
         function loadNextQuestion() {
-            if (userData.quizHistory.answered.length >= 10) {
+            if (userData.quizHistory.answered.length >= 3) {
                 closeModal('quiz-modal');
                 alert("🎉 Daily Quizzes Completed!");
                 return;
@@ -792,8 +837,8 @@
                     userData.quizHistory.answered.push(questionIndex);
                     
                     if (idx === q.correct) {
-                        alert("✅ Correct! +100 Coins");
-                        userData.coins += 100;
+                        alert("✅ Correct! +20 Coins");
+                        userData.coins += 20;
                     } else {
                         alert("❌ Oops! That wasn't right.");
                     }
@@ -829,18 +874,17 @@
                 let s = timeLeft % 60;
                 display.innerText = `0${m}:${s < 10 ? '0'+s : s}`;
 
-                if (timeLeft > 100) instruct.innerText = "20秒時間内，上排牙齒内側，每兩顆一起刷";
-                else if (timeLeft > 80) instruct.innerText = "20秒時間内，上排牙齒咬合面，每兩顆一起刷";
-                else if (timeLeft > 60) instruct.innerText = "20秒時間内，上排牙齒外側，每兩顆一起刷";
-                else if (timeLeft > 40) instruct.innerText = "20秒時間内，下排牙齒内側，每兩顆一起刷";
-                else if (timeLeft > 20) instruct.innerText = "20秒時間内，下排牙齒咬合面，每兩顆一起刷";
-                else if (timeLeft > 0) instruct.innerText = "20秒時間内，下排牙齒外側，每兩顆一起刷";
+                if (timeLeft > 100) instruct.innerText = "STEP1";
+                else if (timeLeft > 80) instruct.innerText = "STEP2";
+                else if (timeLeft > 60) instruct.innerText = "Brush Bottom Teeth";
+                else if (timeLeft > 40) instruct.innerText = "Brush Chewing Surfaces";
+                else if (timeLeft > 20) instruct.innerText = "STEP5";
                 else instruct.innerText = "Don't forget your tongue!";
 
                 if (timeLeft <= 0) {
                     clearInterval(brushInterval);
-                    instruct.innerText = "All done! Shiny Smile! +10000 Coins";
-                    userData.coins += 10000;
+                    instruct.innerText = "All done! Shiny Smile! +100 Coins";
+                    userData.coins += 100;
                     saveData();
                     updateUI();
                     setTimeout(() => closeModal('timer-modal'), 3000);
