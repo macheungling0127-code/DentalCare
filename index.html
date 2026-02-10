@@ -818,8 +818,8 @@
                 saveData();
             }
 
-            if (userData.quizHistory.answered.length >= 3) {
-                alert("🧠 You've completed your 3 daily quizzes!\nCome back tomorrow for more.");
+            if (userData.quizHistory.answered.length >= 10) {
+                alert("🧠 You've completed your 10 daily quizzes!\nCome back tomorrow for more.");
                 return;
             }
 
@@ -827,7 +827,7 @@
         };
 
         function loadNextQuestion() {
-            if (userData.quizHistory.answered.length >= 3) {
+            if (userData.quizHistory.answered.length >= 10) {
                 closeModal('quiz-modal');
                 alert("🎉 Daily Quizzes Completed!");
                 return;
